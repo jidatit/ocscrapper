@@ -9,7 +9,7 @@ const signup = async (req, res, next) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none",
         maxAge: 1000 * 60 * 60 * 24, // 1 day
       })
       .status(201)
@@ -27,7 +27,7 @@ const login = async (req, res, next) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none",
         maxAge: 1000 * 60 * 60 * 24,
       })
       .status(200)
@@ -39,7 +39,7 @@ const login = async (req, res, next) => {
 
 const logout = (req, res) => {
   res
-    .clearCookie("token", { httpOnly: true, sameSite: "lax" })
+    .clearCookie("token", { httpOnly: true, sameSite: "none" })
     .status(200)
     .json({ success: true });
 };
