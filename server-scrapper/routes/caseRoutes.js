@@ -7,7 +7,6 @@ const {
   validate,
 } = require("../middleware/validator");
 const { requireAuth } = require("../middleware/authMiddleware");
-router.use(requireAuth);
 /**
  * @route   POST /api/store-detailed-case-info
  * @desc    Store detailed case information
@@ -28,6 +27,7 @@ router.post(
 router.get(
   "/case/:caseNumber",
   validateCaseNumber,
+  requireAuth,
   validate,
   caseController.getCaseDetails
 );
@@ -37,14 +37,14 @@ router.get(
  * @desc    Get all cases
  * @access  Public
  */
-router.get("/cases", caseController.getAllCases);
+router.get("/cases", requireAuth, caseController.getAllCases);
 
 /**
  * @route   GET /api/cases
  * @desc    Get all cases
  * @access  Public
  */
-router.get("/cases/export", caseController.exportCasesCsv);
+router.get("/cases/export", requireAuth, caseController.exportCasesCsv);
 
 /**
  * @route   DELETE /api/case/:caseNumber
@@ -54,6 +54,7 @@ router.get("/cases/export", caseController.exportCasesCsv);
 router.delete(
   "/case/:caseNumber",
   validateCaseNumber,
+  requireAuth,
   validate,
   caseController.deleteCase
 );
