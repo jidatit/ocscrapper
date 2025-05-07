@@ -180,55 +180,129 @@ export default function CaseList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className='flex gap-3'>
-          <h1 className="text-3xl font-bold tracking-tight">Cases</h1>
+      <div className="space-y-6">
+        {/* Header with title and refresh button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">Cases</h1>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="h-8 w-8 p-0"
+            >
+              <RefreshCcw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+
+          {/* Export button - moved to header for better visibility */}
           <Button
             variant="outline"
-            onClick={() => refetch()}
-            disabled={isRefetching}
+            size="sm"
+            onClick={handleExport}
+            className="bg-primary text-primary-foreground hover:bg-primary/80 hover:text-white"
           >
-            <RefreshCcw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            {startUpdated || endUpdated
+              ? `Export: ${startUpdated ? format(startUpdated, "MMM d") : "…"} – ${endUpdated ? format(endUpdated, "MMM d, yyyy") : "…"}`
+              : "Export All Data"}
           </Button>
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="w-full sm:w-auto space-y-2">
-          {/* Date Preset Selector */}
-          <div className="flex gap-2 items-center">
-            <Filter className="h-4 w-6 text-muted-foreground" />
-            <Select value={datePreset} onValueChange={setDatePreset}>
-              <SelectTrigger className="w-[230px]">
-                <SelectValue placeholder="Date Preset" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="custom">Custom Range on ArrivedAt</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="last7">Last 7 Days</SelectItem>
-                <SelectItem value="last30">Last 30 Days</SelectItem>
-                <SelectItem value="thisMonth">This Month</SelectItem>
-                <SelectItem value="lastMonth">Last Month</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFilters}
-                className="text-muted-foreground"
-              >
-                Clear All
-                <X className="h-4 w-4 ml-1" />
-              </Button>
-            )}
+        {/* Filters and search section */}
+        <form onSubmit={handleSearchSubmit} className="space-y-4">
+          {/* Search bar */}
+          <div className="relative">
+            <Input
+              className="pr-10"
+              placeholder="Search cases by case number and type..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
           </div>
 
-          {/* Filter Badges - shows active filters */}
+          {/* Date filters row */}
+          <div className="flex flex-wrap gap-4">
+            {/* Filed Date Range */}
+            <div className="flex-1 min-w-[240px]">
+              <label className="text-xs font-semibold mb-1 block">Filed Date Range</label>
+              <DatePicker
+                selectsRange
+                startDate={startFiled}
+                endDate={endFiled}
+                onChange={(update) => {
+                  setStartFiled(update[0]);
+                  setEndFiled(update[1]);
+                  setDatePreset('custom');
+                }}
+                isClearable
+                placeholderText="Select filed dates"
+                className="flex h-9 w-56 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                dateFormat="MMM d, yyyy"
+                showYearDropdown
+                showMonthDropdown
+                dropdownMode="select"
+              />
+            </div>
+
+            {/* Arrived Date Range */}
+            <div className="flex-1 min-w-[240px]">
+              <label className="text-xs font-semibold mb-1 block">Arrived Date Range</label>
+              <DatePicker
+                selectsRange
+                startDate={startUpdated}
+                endDate={endUpdated}
+                onChange={(update) => {
+                  setStartUpdated(update[0]);
+                  setEndUpdated(update[1]);
+                  setDatePreset('custom');
+                }}
+                isClearable
+                placeholderText="Select arrived dates"
+                className="flex h-9 w-56 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                dateFormat="MMM d, yyyy"
+                showYearDropdown
+                showMonthDropdown
+                dropdownMode="select"
+              />
+            </div>
+
+            {/* Date Presets */}
+            <div className="w-[180px]">
+              <label className="text-xs font-semibold mb-1 block">Date Preset on Arrived</label>
+              <Select value={datePreset} onValueChange={setDatePreset}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
+                  <SelectItem value="last7">Last 7 Days</SelectItem>
+                  <SelectItem value="last30">Last 30 Days</SelectItem>
+                  <SelectItem value="thisMonth">This Month</SelectItem>
+                  <SelectItem value="lastMonth">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Active Filters */}
           {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Active filters:</span>
+
               {searchQuery && (
-                <Badge variant="outline" className="flex items-center">
+                <Badge variant="outline" className="flex items-center text-xs">
                   Search: {searchQuery}
                   <button
                     onClick={() => setSearchQuery('')}
@@ -238,11 +312,12 @@ export default function CaseList() {
                   </button>
                 </Badge>
               )}
+
               {(startFiled || endFiled) && (
-                <Badge variant="outline" className="flex items-center">
-                  Filed: {startFiled ? format(startFiled, 'MMM d') : '...'}
-                  {' - '}
-                  {endFiled ? format(endFiled, 'MMM d, yyyy') : '...'}
+                <Badge variant="outline" className="flex items-center text-xs">
+                  Filed: {startFiled ? format(startFiled, 'MMM d') : ''}
+                  {startFiled && endFiled && ' – '}
+                  {endFiled ? format(endFiled, 'MMM d, yyyy') : ''}
                   <button
                     onClick={clearFiledDates}
                     className="ml-1 text-muted-foreground hover:text-foreground"
@@ -251,105 +326,32 @@ export default function CaseList() {
                   </button>
                 </Badge>
               )}
+
               {(startUpdated || endUpdated) && (
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline" className="flex items-center">
-                    Updated:&nbsp;
-                    {startUpdated ? format(startUpdated, 'MMM d') : '…'}&nbsp;–&nbsp;
-                    {endUpdated ? format(endUpdated, 'MMM d, yyyy') : '…'}
-                    <button
-                      onClick={clearUpdatedDates}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                </div>
+                <Badge variant="outline" className="flex items-center text-xs">
+                  Arrived: {startUpdated ? format(startUpdated, 'MMM d') : ''}
+                  {startUpdated && endUpdated && ' – '}
+                  {endUpdated ? format(endUpdated, 'MMM d, yyyy') : ''}
+                  <button
+                    onClick={clearUpdatedDates}
+                    className="ml-1 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
               )}
-            </div>
-          )}
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            {/* Filed Date Range Picker */}
-            <div className="flex gap-2 items-center">
-              <div className="flex flex-col w-full sm:w-64">
-                <label className="text-xs text-muted-foreground mb-1">Filed Date Range</label>
-                <DatePicker
-                  selectsRange
-                  startDate={startFiled}
-                  endDate={endFiled}
-                  onChange={(update) => {
-                    setStartFiled(update[0]);
-                    setEndFiled(update[1]);
-                    setDatePreset('custom');
-                  }}
-                  isClearable
-                  placeholderText="Select date range"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  dateFormat="MMM d, yyyy"
-                  showYearDropdown
-                  showMonthDropdown
-                  dropdownMode="select"
-                />
-              </div>
-            </div>
-
-            {/* Updated Date Range Picker */}
-            <div className="flex gap-2 items-center">
-              <div className="flex flex-col w-full sm:w-64">
-                <label className="text-xs text-muted-foreground mb-1">Arrived Date Range</label>
-                <DatePicker
-                  selectsRange
-                  startDate={startUpdated}
-                  endDate={endUpdated}
-                  onChange={(update) => {
-                    setStartUpdated(update[0]);
-                    setEndUpdated(update[1]);
-                    setDatePreset('custom');
-                  }}
-                  isClearable
-                  placeholderText="Select date range"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  dateFormat="MMM d, yyyy"
-                  showYearDropdown
-                  showMonthDropdown
-                  dropdownMode="select"
-                />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Search box */}
-          <div className="flex items-center space-x-2">
-            {/* Search box + submit button */}
-            <div className="relative flex-1">
-              <Input
-                className="pr-10 w-full"
-                placeholder="Search cases..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
               <Button
-                type="submit"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full"
+                onClick={clearAllFilters}
+                className="text-xs text-muted-foreground h-7 px-2"
               >
-                <Search className="h-4 w-4" />
+                Clear All
+                <X className="h-3 w-3 ml-1" />
               </Button>
             </div>
-
-            {/* Export button */}
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              {startUpdated || endUpdated
-                ? `Export CSV: ${startUpdated ? format(startUpdated, "MMM d") : "…"} – ${endUpdated ? format(endUpdated, "MMM d, yyyy") : "…"
-                }`
-                : "Export All Data"}
-            </Button>
-          </div>
-
-
+          )}
         </form>
       </div>
 
