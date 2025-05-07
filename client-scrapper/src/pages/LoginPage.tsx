@@ -122,14 +122,14 @@ export default function LoginPage() {
           </Form>
         </CardContent>
 
-        <CardFooter className="justify-center flex-col space-y-2">
+        {/* <CardFooter className="justify-center flex-col space-y-2">
           <div className="text-sm text-center text-muted-foreground">
             Don't have an account?{' '}
             <Link to="/signup" className="font-medium text-primary hover:underline">
               Sign Up
             </Link>
           </div>
-        </CardFooter>
+        </CardFooter> */}
       </Card>
     </div>
   );
