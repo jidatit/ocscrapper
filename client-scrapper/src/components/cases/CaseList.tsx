@@ -47,6 +47,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { downloadCasesCsv } from '@/api/apiClient';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 export default function CaseList() {
   const [page, setPage] = useState(1);
@@ -159,11 +160,21 @@ export default function CaseList() {
       applyDatePreset(datePreset);
     }
   }, [datePreset]);
+  // 1. Destructure API response under new names
+  const apiPage = data?.page ?? 1;
+  const apiLimit = data?.limit ?? 10;
+  const totalItems = data?.total ?? 0;   // grand total across all pages
+  const totalPages = data?.totalPages ?? 0;
+  const pageItemCount = data?.count ?? 0;   // items in *this* page
 
-  // Calculate pagination values
-  const totalPages = data ? Math.ceil(data.count / 10) : 0;
-  const showingFrom = data ? (page - 1) * 10 + 1 : 0;
-  const showingTo = data ? Math.min(page * 10, data.count) : 0;
+  // 2. Compute display bounds off the API values
+  const showingFrom = pageItemCount > 0
+    ? (apiPage - 1) * apiLimit + 1
+    : 0;
+
+  const showingTo = pageItemCount > 0
+    ? (apiPage - 1) * apiLimit + pageItemCount
+    : 0;
 
   // Check if any filters are active
   const hasActiveFilters = searchQuery || startFiled || endFiled || startUpdated || endUpdated;
@@ -380,7 +391,7 @@ export default function CaseList() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <Table>
+                <Table className='table-fixed  w-full'>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Case Number</TableHead>
@@ -390,9 +401,9 @@ export default function CaseList() {
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody >
                     {data?.data.length === 0 ? (
-                      <TableRow>
+                      <TableRow >
                         <TableCell colSpan={4} className="text-center py-8">
                           <FileIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                           <p className="text-muted-foreground">No cases found</p>
@@ -408,82 +419,96 @@ export default function CaseList() {
                       </TableRow>
                     ) : (
                       data?.data.map((caseItem) => (
-                        <TableRow key={caseItem?._id}>
-                          <TableCell className="font-medium">
-                            {caseItem?.caseNumber}
-                          </TableCell>
-                          <TableCell>{caseItem?.caseType}</TableCell>
-                          <TableCell>
-                            {caseItem?.updatedAt
-                              ? format(new Date(caseItem.updatedAt), 'MMM d, yyyy, h:mm a')
-                              : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            {caseItem?.dateFiled ? format(new Date(caseItem.dateFiled), 'MMM d, yyyy') : "N/A"}                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => viewCase(caseItem?.caseNumber)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
+                        <TooltipProvider>
 
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setCaseToDelete(caseItem)}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-1 text-destructive" />
-                                    Delete
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Delete Case
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete case{' '}
-                                      <span className="font-semibold">
-                                        {caseToDelete?.caseNumber}
-                                      </span>
-                                      ? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <div className="flex items-center space-x-2 py-2">
-                                    <Checkbox
-                                      id="delete-file"
-                                      checked={deleteWithFile}
-                                      onCheckedChange={(checked) =>
-                                        setDeleteWithFile(checked === true)
-                                      }
-                                    />
-                                    <label
-                                      htmlFor="delete-file"
-                                      className="text-sm font-medium"
-                                    >
-                                      Also delete PDF file
-                                    </label>
+
+                          <TableRow key={caseItem?._id}>
+                            <TableCell className="font-medium">
+                              {caseItem?.caseNumber}
+                            </TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="max-w-[200px] truncate cursor-help">
+                                    {caseItem.caseType || '—'}
                                   </div>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={handleDelete}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                </TooltipTrigger>
+                                <TooltipContent side="top" align="start">
+                                  {caseItem.caseType}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TableCell>               <TableCell>
+                              {caseItem?.updatedAt
+                                ? format(new Date(caseItem.updatedAt), 'MMM d, yyyy, h:mm a')
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {caseItem?.dateFiled ? format(new Date(caseItem.dateFiled), 'MMM d, yyyy') : "N/A"}                          </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => viewCase(caseItem?.caseNumber)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setCaseToDelete(caseItem)}
                                     >
+                                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />
                                       Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Delete Case
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete case{' '}
+                                        <span className="font-semibold">
+                                          {caseToDelete?.caseNumber}
+                                        </span>
+                                        ? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <div className="flex items-center space-x-2 py-2">
+                                      <Checkbox
+                                        id="delete-file"
+                                        checked={deleteWithFile}
+                                        onCheckedChange={(checked) =>
+                                          setDeleteWithFile(checked === true)
+                                        }
+                                      />
+                                      <label
+                                        htmlFor="delete-file"
+                                        className="text-sm font-medium"
+                                      >
+                                        Also delete PDF file
+                                      </label>
+                                    </div>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={handleDelete}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        </TooltipProvider>
                       ))
                     )}
                   </TableBody>
@@ -491,31 +516,37 @@ export default function CaseList() {
               </div>
 
               {/* Pagination */}
-              {data && data.count > 0 && (
+              {data && pageItemCount > 0 && (
                 <div className="flex items-center justify-between px-4 py-4 border-t">
                   <p className="text-sm text-muted-foreground">
-                    Showing <span className="font-medium">{showingFrom}</span> to{' '}
-                    <span className="font-medium">{showingTo}</span> of{' '}
-                    <span className="font-medium">{data.count}</span> cases
+                    Showing{' '}
+                    <span className="font-medium">{showingFrom}</span>{' '}
+                    to{' '}
+                    <span className="font-medium">{showingTo}</span>{' '}
+                    of{' '}
+                    <span className="font-medium">{totalItems}</span>{' '}
+                    cases
                   </p>
 
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                      onClick={() => setPage(p => Math.max(p - 1, 1))}
                       disabled={page <= 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                       <span className="sr-only">Previous page</span>
                     </Button>
+
                     <span className="text-sm font-medium">
-                      Page {page} of {totalPages}
+                      Page {apiPage} of {totalPages}
                     </span>
+
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                      onClick={() => setPage(p => Math.min(p + 1, totalPages))}
                       disabled={page >= totalPages}
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -524,6 +555,7 @@ export default function CaseList() {
                   </div>
                 </div>
               )}
+
             </>
           )}
         </CardContent>
