@@ -1,0 +1,8 @@
+#root {
+  width: 100%;
+  /* remove the max-width limit */
+  /* max-width: 1280px; */
+  margin: 0; /* no horizontal centering needed */
+  padding: 2rem;
+  text-align: center;
+}
