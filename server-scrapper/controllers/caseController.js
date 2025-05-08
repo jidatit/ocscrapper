@@ -110,6 +110,9 @@ const deleteCase = async (req, res, next) => {
     next(error);
   }
 };
+/**
+ * Stream cases as CSV within a given updated range.
+ */
 const exportCasesCsv = async (req, res, next) => {
   try {
     const { startUpdated, endUpdated } = req.query;
@@ -153,36 +156,43 @@ const exportCasesCsv = async (req, res, next) => {
 
     cursor.on("data", (doc) => {
       const fmtDate = (d) => {
+        if (!d) return "";
         const date = d instanceof Date ? d : new Date(d);
+        if (isNaN(date)) return "";
         return `${date.getFullYear()}-${(date.getMonth() + 1)
           .toString()
           .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
       };
 
-      // Names and Addresses separately for plaintiffs
-      const plaintiffNames = (doc.plaintiffs || [])
-        .map((p) => p.name)
-        .join("; ");
-      const plaintiffAddresses = (doc.plaintiffs || [])
-        .map((p) => p.address.replace(/\n/g, " ").trim())
-        .join("; ");
+      // Safely extract names and addresses
+      const listToDelimited = (items = [], key) => {
+        return items
+          .map((item) => {
+            const value = item && item[key] ? item[key].toString() : "";
+            return value.replace(/\n/g, " ").trim();
+          })
+          .filter((v) => v)
+          .join("; ");
+      };
 
-      // And same for defendants
-      const defendantNames = (doc.defendants || [])
-        .map((d) => d.name)
-        .join("; ");
-      const defendantAddresses = (doc.defendants || [])
-        .map((d) => d.address.replace(/\n/g, " ").trim())
-        .join("; ");
+      const plaintiffNames = listToDelimited(doc.plaintiffs, "name");
+      const plaintiffAddresses = listToDelimited(doc.plaintiffs, "address");
+      const defendantNames = listToDelimited(doc.defendants, "name");
+      const defendantAddresses = listToDelimited(doc.defendants, "address");
 
       // Judgments
       const judgments = (doc.judgmentDetails || [])
-        .map((j) => `${fmtDate(j.date)}: ${j.name.replace(/\s+/g, " ").trim()}`)
+        .map((j) => {
+          const dateStr = fmtDate(j.date);
+          const nameStr = j.name ? j.name.replace(/\s+/g, " ").trim() : "";
+          return [dateStr, nameStr].filter((x) => x).join(": ");
+        })
+        .filter((v) => v)
         .join("; ");
 
-      const row = [
-        doc.caseNumber,
-        doc.caseType,
+      const rowValues = [
+        doc.caseNumber || "",
+        doc.caseType || "",
         fmtDate(doc.dateFiled),
         plaintiffNames,
         plaintiffAddresses,
@@ -192,9 +202,9 @@ const exportCasesCsv = async (req, res, next) => {
         fmtDate(doc.createdAt),
         fmtDate(doc.updatedAt),
         doc.pdfUrl || "",
-      ]
-        .map((v) => `"${String(v || "").replace(/"/g, '""')}"`)
-        .join(",");
+      ];
+
+      const row = rowValues.map((v) => `"${v.replace(/"/g, '""')}"`).join(",");
 
       res.write(row + "\n");
     });

@@ -7,6 +7,7 @@ const caseRoutes = require("./routes/caseRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 const authRoutes = require("./routes/authRoutes");
 const logger = require("./utils/logger");
+const { scheduleAddressRetry } = require("./jobs/retryAddresses");
 
 // Initialize express app
 const app = express();
@@ -33,6 +34,9 @@ app.use((req, res, next) => {
 app.use("/api", authRoutes);
 app.use("/api", caseRoutes);
 app.use("/api", fileRoutes);
+
+// Kick off the cron job when the app starts
+scheduleAddressRetry();
 
 // Health check route
 app.get("/health", (req, res) => {
